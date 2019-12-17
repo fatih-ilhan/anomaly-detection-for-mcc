@@ -1,3 +1,6 @@
+import os
+import sys
+import warnings
 import json
 import argparse
 
@@ -13,6 +16,11 @@ import config
 from utils.data_utils import prepare_data
 from utils.evaluate_utils import evaluate, merge_results
 from models import AnomalyDetector
+
+# very harsh way to ignore warnings, but i don't care
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
+    os.environ["PYTHONWARNINGS"] = "ignore"
 
 random_seed = 5
 
@@ -36,7 +44,7 @@ def create_pipeline(ad_name, mcc_name, mode, num_classes):
     param_grid = {}
 
     if mode != "normal":
-        ad = AnomalyDetector(ad_name, num_classes, mode)
+        ad = AnomalyDetector(ad_name, mode, num_classes)
         estimator_list.append((ad_name, ad))
         estimator_list.append(("std_2", StandardScaler()))
         for key, val in ad_params.items():
@@ -47,7 +55,7 @@ def create_pipeline(ad_name, mcc_name, mode, num_classes):
     for key, val in mcc_params.items():
         param_grid[mcc_name + "__" + key] = val
 
-    model = GridSearchCV(estimator=Pipeline(steps=estimator_list),
+    model = GridSearchCV(estimator=Pipeline(estimator_list),
                          param_grid=param_grid,
                          cv=config.NUM_VAL_SPLITS,
                          scoring=config.VAL_METRIC,
@@ -74,6 +82,8 @@ if __name__ == '__main__':
 
     for dataset_name in args.dataset_list:
 
+        print(f"**********{dataset_name}**********")
+
         data_dict = prepare_data(dataset_name)
         x, y, x_test, y_test = data_dict.values()
         num_classes = len(np.unique(y))
@@ -98,16 +108,12 @@ if __name__ == '__main__':
                     test_results_list = []
 
                     for rep in range(args.num_repeat):
-                        print("********************")
-                        print(f"Mode: {mode}, AD: {ad_name}, MCC: {mcc_name}, Dataset: {dataset_name}, Repeat index: {rep + 1}")
+                        # print("********************")
+                        # print(f"Mode: {mode}, AD: {ad_name}, MCC: {mcc_name}, Dataset: {dataset_name}, Repeat index: {rep + 1}")
 
                         split_idx = 0
 
-                        preds = {}
-
                         while split_idx < num_test_splits:
-
-                            preds[split_idx] = {}
 
                             if x_test is None:
                                 train_index, test_index = next(skf.split(x, y))
@@ -123,7 +129,10 @@ if __name__ == '__main__':
 
                             model = create_pipeline(ad_name, mcc_name, mode, num_classes)
 
-                            model.fit(cur_x_train, cur_y_train)
+                            try:
+                                model.fit(cur_x_train, cur_y_train)
+                            except:
+                                pass
 
                             test_preds = model.predict(cur_x_test)
                             test_results = evaluate(test_preds, cur_y_test, config.EVALUATION_METRIC_LIST)
@@ -134,7 +143,7 @@ if __name__ == '__main__':
                     average_test_results_mean = merge_results(test_results_list, "mean")
                     average_test_results_std = merge_results(test_results_list, "std")
 
-                    print(f"Mode: {mode}, AD: {ad_name}, MCC: {mcc_name}, Dataset: {dataset_name}, Test results (mean):",
-                          json.dumps(average_test_results_mean, indent=4))
-                    print(f"Mode: {mode}, AD: {ad_name}, MCC: {mcc_name}, Dataset: {dataset_name}, Test results (std):",
-                          json.dumps(average_test_results_std, indent=4))
+                    print(f"Mode: {mode:10}| AD: {ad_name:15}| MCC: {mcc_name:15}| Dataset: {dataset_name:15}| "
+                          f"Test results (mean):", average_test_results_mean)
+                    print(f"Mode: {mode:10}| AD: {ad_name:15}| MCC: {mcc_name:15}| Dataset: {dataset_name:15}| "
+                          f"Test results (std):", average_test_results_std)
