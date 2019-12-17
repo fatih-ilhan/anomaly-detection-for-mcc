@@ -3,22 +3,36 @@ import numpy as np
 import sklearn.metrics as skmetrics
 
 
-def evaluate(pred, label, metric_list):
+def evaluate(pred, label, num_classes, metric_list):
     result_dict = {}
+
+    label_one_hot = np.zeros((label.shape[0], num_classes))
+    label_one_hot[np.arange(label_one_hot.shape[0]), label] = 1
 
     for metric in metric_list:
         if metric == "confusion_matrix":
-            result = skmetrics.confusion_matrix(label, pred)
+            result = skmetrics.confusion_matrix(label, pred.argmax(axis=1))
             result_dict[metric] = np.array(result)
         elif metric == "accuracy":
-            result = np.around(skmetrics.accuracy_score(label, pred) * 100, 2)
+            result = np.around(skmetrics.accuracy_score(label, pred.argmax(axis=1)) * 100, 2)
             result_dict[metric] = result
         elif metric == "balanced_accuracy":
-            result = np.around(skmetrics.balanced_accuracy_score(label, pred) * 100, 2)
+            result = np.around(skmetrics.balanced_accuracy_score(label, pred.argmax(axis=1)) * 100, 2)
             result_dict[metric] = result
-        elif metric == "balanced_f1":
-            result = np.around(skmetrics.f1_score(label, pred, average="weighted") * 100, 2)
+        elif metric == "f1_macro":
+            result = np.around(skmetrics.f1_score(label, pred.argmax(axis=1), average="macro") * 100, 2)
             result_dict[metric] = result
+        elif metric == "f1_micro":
+            result = np.around(skmetrics.f1_score(label, pred.argmax(axis=1), average="micro") * 100, 2)
+            result_dict[metric] = result
+        elif metric == "roc_auc_macro":
+            result = np.around(skmetrics.roc_auc_score(label_one_hot, pred, average="macro") * 100, 2)
+            result_dict[metric] = result
+        elif metric == "roc_auc_micro":
+            result = np.around(skmetrics.roc_auc_score(label_one_hot, pred, average="micro") * 100, 2)
+            result_dict[metric] = result
+        else:
+            raise KeyError
 
     return result_dict
 

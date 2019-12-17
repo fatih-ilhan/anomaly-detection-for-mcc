@@ -5,8 +5,9 @@ import json
 import argparse
 
 import numpy as np
-from sklearn.svm import LinearSVC
-from sklearn.ensemble import RandomForestClassifier
+from pyod.models.lof import LOF
+from sklearn.svm import LinearSVC, OneClassSVM
+from sklearn.ensemble import RandomForestClassifier, IsolationForest
 from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
@@ -23,6 +24,10 @@ if not sys.warnoptions:
     os.environ["PYTHONWARNINGS"] = "ignore"
 
 random_seed = 5
+
+ad_dispatcher = {"ocsvm": OneClassSVM,
+                 "lof": LOF,
+                 "isolation": IsolationForest}
 
 mcc_dispatcher = {"mlp": MLPClassifier,
                   "random_forest": RandomForestClassifier,
@@ -44,7 +49,8 @@ def create_pipeline(ad_name, mcc_name, mode, num_classes):
     param_grid = {}
 
     if mode != "normal":
-        ad = AnomalyDetector(ad_name, mode, num_classes)
+        detectors = [ad_dispatcher[ad_name]()] * num_classes
+        ad = AnomalyDetector(ad_name, mode, num_classes, detectors)
         estimator_list.append((ad_name, ad))
         estimator_list.append(("std_2", StandardScaler()))
         for key, val in ad_params.items():
@@ -131,11 +137,15 @@ if __name__ == '__main__':
 
                             try:
                                 model.fit(cur_x_train, cur_y_train)
-                            except:
-                                pass
+                            except Exception as e:
+                                print(e)
 
-                            test_preds = model.predict(cur_x_test)
-                            test_results = evaluate(test_preds, cur_y_test, config.EVALUATION_METRIC_LIST)
+                            try:
+                                test_preds = getattr(model, score_func_dispatcher[mcc_name])(cur_x_test)
+                            except Exception as e:
+                                print(e)
+
+                            test_results = evaluate(test_preds, cur_y_test, num_classes, config.EVALUATION_METRIC_LIST)
                             test_results_list.append(test_results)
 
                             split_idx += 1
@@ -143,7 +153,7 @@ if __name__ == '__main__':
                     average_test_results_mean = merge_results(test_results_list, "mean")
                     average_test_results_std = merge_results(test_results_list, "std")
 
-                    print(f"Mode: {mode:10}| AD: {ad_name:15}| MCC: {mcc_name:15}| Dataset: {dataset_name:15}| "
+                    print(f"Mode: {mode:7}| AD: {ad_name:10}| MCC: {mcc_name:14}| Dataset: {dataset_name:13}| "
                           f"Test results (mean):", average_test_results_mean)
-                    print(f"Mode: {mode:10}| AD: {ad_name:15}| MCC: {mcc_name:15}| Dataset: {dataset_name:15}| "
+                    print(f"Mode: {mode:7}| AD: {ad_name:10}| MCC: {mcc_name:14}| Dataset: {dataset_name:13}| "
                           f"Test results (std):", average_test_results_std)
