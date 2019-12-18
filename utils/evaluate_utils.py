@@ -14,22 +14,22 @@ def evaluate(pred, label, num_classes, metric_list):
             result = skmetrics.confusion_matrix(label, pred.argmax(axis=1))
             result_dict[metric] = np.array(result)
         elif metric == "accuracy":
-            result = np.around(skmetrics.accuracy_score(label, pred.argmax(axis=1)) * 100, 2)
+            result = skmetrics.accuracy_score(label, pred.argmax(axis=1)) * 100
             result_dict[metric] = result
         elif metric == "balanced_accuracy":
-            result = np.around(skmetrics.balanced_accuracy_score(label, pred.argmax(axis=1)) * 100, 2)
+            result = skmetrics.balanced_accuracy_score(label, pred.argmax(axis=1)) * 100
             result_dict[metric] = result
         elif metric == "f1_macro":
-            result = np.around(skmetrics.f1_score(label, pred.argmax(axis=1), average="macro") * 100, 2)
+            result = skmetrics.f1_score(label, pred.argmax(axis=1), average="macro") * 100
             result_dict[metric] = result
         elif metric == "f1_micro":
-            result = np.around(skmetrics.f1_score(label, pred.argmax(axis=1), average="micro") * 100, 2)
+            result = skmetrics.f1_score(label, pred.argmax(axis=1), average="micro") * 100
             result_dict[metric] = result
         elif metric == "roc_auc_macro":
-            result = np.around(skmetrics.roc_auc_score(label_one_hot, pred, average="macro") * 100, 2)
+            result = skmetrics.roc_auc_score(label_one_hot, pred, average="macro") * 100
             result_dict[metric] = result
         elif metric == "roc_auc_micro":
-            result = np.around(skmetrics.roc_auc_score(label_one_hot, pred, average="micro") * 100, 2)
+            result = skmetrics.roc_auc_score(label_one_hot, pred, average="micro") * 100
             result_dict[metric] = result
         else:
             raise KeyError
@@ -55,6 +55,6 @@ def merge_results(results_dict_list, mode="mean"):
         else:
             raise NotImplementedError
 
-        out_dict[key] = out_value.tolist()
+        out_dict[key] = np.around(out_value, 2)
 
     return out_dict

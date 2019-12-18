@@ -97,8 +97,8 @@ if __name__ == '__main__':
         num_test_splits = config.NUM_TEST_SPLITS
         if x_test is not None:  # Test split is predefined in the dataset
             num_test_splits = 1
-
-        skf = StratifiedKFold(n_splits=num_test_splits, random_state=random_seed)
+        else:
+            skf = StratifiedKFold(n_splits=num_test_splits, random_state=random_seed)
 
         for mode in args.mode_list:
 

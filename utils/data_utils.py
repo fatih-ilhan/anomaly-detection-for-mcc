@@ -66,7 +66,7 @@ def prepare_data_smartphone():
     x_test_df = pd.read_csv(x_test_data_path, header=None, sep=" ")
     x_test = np.array(x_test_df)
 
-    y_test_data_path = os.path.join("data_raw", "fully_labeled", "smartphone_activity", "Test", "y_test.txt")
+    y_test_data_path = os.path.join("data", "smartphone_activity", "Test", "y_test.txt")
     y_test_df = pd.read_csv(y_test_data_path, header=None, sep=" ")
     y_test = np.array(y_test_df)[:, 0] - 1
 
