@@ -9,21 +9,27 @@ def evaluate(pred, label, num_classes, metric_list):
     label_one_hot = np.zeros((label.shape[0], num_classes))
     label_one_hot[np.arange(label_one_hot.shape[0]), label] = 1
 
+    if pred.ndim == 1:
+        pred_discrete = (pred >= 0).astype(int)
+        label_one_hot = label_one_hot[:, 1]
+    else:
+        pred_discrete = pred.argmax(axis=1)
+
     for metric in metric_list:
         if metric == "confusion_matrix":
-            result = skmetrics.confusion_matrix(label, pred.argmax(axis=1))
+            result = skmetrics.confusion_matrix(label, pred_discrete)
             result_dict[metric] = np.array(result)
         elif metric == "accuracy":
-            result = skmetrics.accuracy_score(label, pred.argmax(axis=1)) * 100
+            result = skmetrics.accuracy_score(label, pred_discrete) * 100
             result_dict[metric] = result
         elif metric == "balanced_accuracy":
-            result = skmetrics.balanced_accuracy_score(label, pred.argmax(axis=1)) * 100
+            result = skmetrics.balanced_accuracy_score(label, pred_discrete) * 100
             result_dict[metric] = result
         elif metric == "f1_macro":
-            result = skmetrics.f1_score(label, pred.argmax(axis=1), average="macro") * 100
+            result = skmetrics.f1_score(label, pred_discrete, average="macro") * 100
             result_dict[metric] = result
         elif metric == "f1_micro":
-            result = skmetrics.f1_score(label, pred.argmax(axis=1), average="micro") * 100
+            result = skmetrics.f1_score(label, pred_discrete, average="micro") * 100
             result_dict[metric] = result
         elif metric == "roc_auc_macro":
             result = skmetrics.roc_auc_score(label_one_hot, pred, average="macro") * 100
